@@ -1,10 +1,10 @@
 # CobBerg: Apache Iceberg in COBOL
-
+``` cobol
        Identification Division.
        Program-Id. CobBerg-Readme.
        Author. xAI-Grok-Team.
        Date-Written. Feb-26-2025.
-
+```
 Welcome to **CobBerg**, a COBOL-based implementation of [Apache Iceberg](https://iceberg.apache.org/), the open table format for massive analytic datasets. This project doesn’t fight COBOL’s enduring grip on the world—it leans into it, bringing modern data lake capabilities to a language that’s too stubborn (and too critical) to fade away.
 
 ## Why CobBerg?
@@ -70,13 +70,13 @@ COBOL powers the backbone of finance, insurance, and government—trillions of t
 - ```tests/```: Sample programs to ```ACCEPT``` and ```DISPLAY``` your way to validation.
 
 ### Why COBOL for Iceberg?
-
+``` cobol
        Procedure Division.
        0100-Why-COBOL.
            Display "Modern stack wants new code".
            Display "COBOL says no".
            Display "CobBerg says yes to both".
-
+```
 The data world loves its cloud toys, but COBOL’s still grinding away in the enterprise engine room. Instead of forcing a rewrite, **CobBerg** rewrites the rules—bringing Iceberg’s power to COBOL with Move statements and all. It’s legacy meets lake, running smooth on that trusty mainframe.
 
 ### Contributing
