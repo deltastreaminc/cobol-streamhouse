@@ -66,6 +66,6 @@ We’re building the future of COBOL together! Check out ```CONTRIBUTING.md``` f
 ### License
 This project is licensed under the MIT License—see ```LICENSE``` for details.
 ### Contact
-Have questions or ideas? Open an issue or reach out to the maintainers at [your-email@example.com].
+Have questions or ideas? Open an issue or reach out to the maintainers at [cobol@deltastream.io].
 Let’s make COBOL the powerhouse of the modern data world!
 
