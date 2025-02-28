@@ -1,0 +1,121 @@
+IDENTIFICATION DIVISION.
+PROGRAM-ID. AclApis.
+
+ENVIRONMENT DIVISION.
+CONFIGURATION SECTION.
+REPOSITORY.
+    COPY "kafka/network/RequestChannel.cob".
+    COPY "kafka/utils/Logging.cob".
+    COPY "org/apache/kafka/common/acl/AclOperation.cob".
+    COPY "org/apache/kafka/common/acl/AclBinding.cob".
+    COPY "org/apache/kafka/common/errors/".
+    COPY "org/apache/kafka/common/message/CreateAclsResponseData.cob".
+    COPY "org/apache/kafka/common/message/DeleteAclsResponseData.cob".
+    COPY "org/apache/kafka/common/message/".
+    COPY "org/apache/kafka/common/protocol/Errors.cob".
+    COPY "org/apache/kafka/common/requests/".
+    COPY "org/apache/kafka/common/resource/Resource.cob".
+    COPY "org/apache/kafka/common/resource/ResourceType.cob".
+    COPY "org/apache/kafka/security/authorizer/AuthorizerUtils.cob".
+    COPY "org/apache/kafka/server/authorizer/".
+
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 AUTH-HELPER PIC X(10).
+01 AUTHORIZER PIC X(10).
+01 REQUEST-HELPER PIC X(10).
+01 NAME PIC X(10).
+01 CONFIG PIC X(10).
+01 IDENT-STRING PIC X(30).
+01 ALTER-ACLS-PURGATORY PIC X(15).
+01 CLOSED-FLAG PIC X.
+
+PROCEDURE DIVISION.
+MAIN-PROCEDURE.
+    MOVE "[AclApis-%s-%s] " TO IDENT-STRING.
+    STRING NAME, CONFIG INTO IDENT-STRING.
+    MOVE FUNCTION CONCATENATE(IDENT-STRING) TO LOGIDENT.
+
+    MOVE "AlterAcls" TO ALTER-ACLS-PURGATORY.
+    MOVE CONFIG TO ALTER-ACLS-PURGATORY-BROKEID.
+
+    MOVE "N" TO CLOSED-FLAG.
+
+    PROCEDURE-CLOSE.
+        IF CLOSED-FLAG = "N" THEN
+            CALL "shutdown" USING ALTER-ACLS-PURGATORY.
+            MOVE "Y" TO CLOSED-FLAG.
+        END-IF.
+
+    PROCEDURE-HANDLE-DESCRIBE-ACLS.
+        CALL "authorizeClusterOperation" USING REQUEST, DESCRIBE.
+        MOVE REQUEST-BODY TO DESCRIBE-ACLS-REQUEST.
+        IF AUTHORIZER IS EQUAL TO ZERO THEN
+            CALL "sendResponseMaybeThrottle" USING REQUEST, DESCRIBE-ACLS-RESPONSE
+        ELSE
+            CALL "acls" USING AUTHORIZER, DESCRIBE-ACLS-REQUEST-FILTER.
+            CALL "sendResponseMaybeThrottle" USING REQUEST, DESCRIBE-ACLS-RESPONSE
+        END-IF.
+        MOVE FUNCTION COMPLETEFUTURE TO RETURN-VALUE.
+
+    PROCEDURE-HANDLE-CREATE-ACLS.
+        CALL "authorizeClusterOperation" USING REQUEST, ALTER.
+        MOVE REQUEST-BODY TO CREATE-ACLS-REQUEST.
+        IF AUTHORIZER IS EQUAL TO ZERO THEN
+            CALL "getErrorResponse" USING CREATE-ACLS-REQUEST, CREATE-ACLS-RESPONSE
+        ELSE
+            PERFORM VARYING ACL-BINDING THROUGH CREATE-ACLS-REQUEST-ACLCREATIONS
+                PERFORM CHECK-ACL-BINDING
+                IF ERROR-RESULTS IS NOT EMPTY THEN
+                    MOVE ACL-BINDING TO ERROR-RESULTS(ACL-BINDING)
+                ELSE
+                    MOVE ACL-BINDING TO VALID-BINDINGS
+                END-IF
+            END-PERFORM
+            CALL "createAcls" USING REQUEST-CONTEXT, VALID-BINDINGS
+            PERFORM SEND-RESPONSE-CALLBACK
+            CALL "thenApply" USING CREATE-ACLS-RESPONSE
+        END-IF.
+        MOVE FUNCTION COMPLETEFUTURE TO RETURN-VALUE.
+
+    PROCEDURE-HANDLE-DELETE-ACLS.
+        CALL "authorizeClusterOperation" USING REQUEST, ALTER.
+        MOVE REQUEST-BODY TO DELETE-ACLS-REQUEST.
+        IF AUTHORIZER IS EQUAL TO ZERO THEN
+            CALL "getErrorResponse" USING DELETE-ACLS-REQUEST, DELETE-ACLS-RESPONSE
+        ELSE
+            CALL "deleteAcls" USING REQUEST-CONTEXT, DELETE-ACLS-REQUEST-FILTERS
+            PERFORM SEND-RESPONSE-CALLBACK
+            CALL "thenApply" USING DELETE-ACLS-RESPONSE
+        END-IF.
+        MOVE FUNCTION COMPLETEFUTURE TO RETURN-VALUE.
+
+    CHECK-ACL-BINDING.
+        MOVE RESOURCE TO ACL-RESOURCE.
+        IF ACL-RESOURCE-TYPE IS EQUAL TO CLUSTER AND NOT FUNCTION ISCLUSTERRESOURCE(ACL-RESOURCE-NAME)
+            MOVE FUNCTION INVALIDREQUESTEXCEPTION("The only valid name for the CLUSTER resource is " + CLUSTER-NAME) TO ERROR
+        ELSE IF ACL-RESOURCE-NAME IS EQUAL TO SPACES
+            MOVE FUNCTION INVALIDREQUESTEXCEPTION("Invalid empty resource name") TO ERROR
+        ELSE
+            MOVE NULL TO ERROR
+        END-IF.
+        IF ERROR IS NOT NULL THEN
+            MOVE ACL-BINDING TO ERROR-RESULTS(ACL-BINDING)
+        ELSE
+            MOVE ACL-BINDING TO VALID-BINDINGS
+        END-IF.
+
+    SEND-RESPONSE-CALLBACK.
+        PERFORM VARYING ACL-BINDING THROUGH BINDINGS
+            MOVE RESULT TO ACL-CREATION-RESULT
+            MOVE EXCEPTION TO RESULT-EXCEPTION
+            IF RESULT-EXCEPTION IS NOT NULL THEN
+                MOVE FUNCTION APIERROR(RESULT-EXCEPTION) TO API-ERROR
+                MOVE API-ERROR-CODE TO ACL-CREATION-RESULT-ERRORCODE
+                MOVE API-ERROR-MESSAGE TO ACL-CREATION-RESULT-ERRORMESSAGE
+            END-IF
+            MOVE ACL-CREATION-RESULT TO RESULTS(INDEX)
+        END-PERFORM.
+        CALL "complete" USING FUTURE, RESULTS.
+
+    .
