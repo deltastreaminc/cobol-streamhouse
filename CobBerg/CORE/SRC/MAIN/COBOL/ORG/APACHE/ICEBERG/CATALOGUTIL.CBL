@@ -1,0 +1,168 @@
+IDENTIFICATION DIVISION.
+PROGRAM-ID. CATALOGUTIL.
+
+ENVIRONMENT DIVISION.
+REPOSITORY.
+    CLASS CATALOG IS "org.apache.iceberg.catalog.Catalog".
+    CLASS FILEIO IS "org.apache.iceberg.io.FileIO".
+    CLASS METRICSREPORTER IS "org.apache.iceberg.metrics.MetricsReporter".
+    CLASS CONFIGURABLE IS "org.apache.iceberg.hadoop.Configurable".
+    CLASS SUPPORTSBULKOPERATIONS IS "org.apache.iceberg.io.SupportsBulkOperations".
+    CLASS RUNTIMEIOEXCEPTION IS "org.apache.iceberg.exceptions.RuntimeIOException".
+    CLASS VALIDATIONEXCEPTION IS "org.apache.iceberg.exceptions.ValidationException".
+    CLASS VIEWMETADATA IS "org.apache.iceberg.view.ViewMetadata".
+    CLASS TABLEMETADATA IS "org.apache.iceberg.TableMetadata".
+    CLASS MANIFESTFILE IS "org.apache.iceberg.ManifestFile".
+    CLASS MANIFESTENTRY IS "org.apache.iceberg.ManifestEntry".
+    CLASS MANIFESTREADER IS "org.apache.iceberg.ManifestReader".
+    CLASS PARTITIONSTATISTICSFILE IS "org.apache.iceberg.PartitionStatisticsFile".
+    CLASS STATISTICSFILE IS "org.apache.iceberg.StatisticsFile".
+    CLASS SNAPSHOT IS "org.apache.iceberg.Snapshot".
+    CLASS PROPERTYUTIL IS "org.apache.iceberg.util.PropertyUtil".
+    CLASS TASKS IS "org.apache.iceberg.util.Tasks".
+    CLASS THREADPOOLS IS "org.apache.iceberg.util.ThreadPools".
+    CLASS MAPMAKER IS "org.apache.iceberg.relocated.com.google.common.collect.MapMaker".
+    CLASS DYNCLASSES IS "org.apache.iceberg.common.DynClasses".
+    CLASS DYNCONSTRUCTOR IS "org.apache.iceberg.common.DynConstructors".
+    CLASS DYNMETHODS IS "org.apache.iceberg.common.DynMethods".
+    CLASS JOINER IS "org.apache.iceberg.relocated.com.google.common.base.Joiner".
+    CLASS PRECONDITIONS IS "org.apache.iceberg.relocated.com.google.common.base.Preconditions".
+    CLASS ITERABLES IS "org.apache.iceberg.relocated.com.google.common.collect.Iterables".
+    CLASS LISTS IS "org.apache.iceberg.relocated.com.google.common.collect.Lists".
+    CLASS SETS IS "org.apache.iceberg.relocated.com.google.common.collect.Sets".
+    CLASS LOGGERfactory IS "org.slf4j.LoggerFactory".
+
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 ICEBERG-CATALOG-TYPE PIC X(10) VALUE "type".
+01 ICEBERG-CATALOG-TYPE-HADOOP PIC X(7) VALUE "hadoop".
+01 ICEBERG-CATALOG-TYPE-HIVE PIC X(4) VALUE "hive".
+01 ICEBERG-CATALOG-TYPE-REST PIC X(4) VALUE "rest".
+01 ICEBERG-CATALOG-TYPE-GLUE PIC X(4) VALUE "glue".
+01 ICEBERG-CATALOG-TYPE-NESSIE PIC X(6) VALUE "nessie".
+01 ICEBERG-CATALOG-TYPE-JDBC PIC X(4) VALUE "jdbc".
+
+01 ICEBERG-CATALOG-HADOOP PIC X(37) VALUE "org.apache.iceberg.hadoop.HadoopCatalog".
+01 ICEBERG-CATALOG-HIVE PIC X(33) VALUE "org.apache.iceberg.hive.HiveCatalog".
+01 ICEBERG-CATALOG-REST PIC X(29) VALUE "org.apache.iceberg.rest.RESTCatalog".
+01 ICEBERG-CATALOG-GLUE PIC X(32) VALUE "org.apache.iceberg.aws.glue.GlueCatalog".
+01 ICEBERG-CATALOG-NESSIE PIC X(33) VALUE "org.apache.iceberg.nessie.NessieCatalog".
+01 ICEBERG-CATALOG-JDBC PIC X(31) VALUE "org.apache.iceberg.jdbc.JdbcCatalog".
+
+01 GC-ENABLED PIC X(12) VALUE "gc.enabled".
+01 GC-ENABLED-DEFAULT PIC 9(1) VALUE 1.
+
+PROCEDURE DIVISION.
+
+DROPTALBEDATA.
+    CALL "deleteFiles" USING FILEIO, MANIFESTSTODELELE.
+    IF GCENABLED
+        CALL "deleteFiles" USING FILEIO, MANIFESTLIST-TO-DELETE.
+    CALL "deleteFiles" USING FILEIO, MANIFEST-LIST-TO-DELETE, "manifest list", TRUE.
+    CALL "deleteFiles" USING FILEIO, PREVIOUS-FILES, "previous metadata", TRUE.
+    CALL "deleteFiles" USING FILEIO, STATISTICS-FILES, "statistics", TRUE.
+    CALL "deleteFiles" USING FILEIO, PARTITION-STATISTICS-FILES, "partition statistics", TRUE.
+    CALL "deleteFile" USING FILEIO, METADATA-FILE-LOCATION, "metadata".
+
+DROPVIEWMETADATA.
+    IF GCENABLED
+        CALL "deleteFile" USING FILEIO, METADATA-FILE-LOCATION, "metadata".
+
+LOADCATALOG.
+    IF IMPL IS NULL
+        RAISE EXCEPTION "Cannot initialize custom Catalog, impl class name is null".
+    PERFORM LOADCONSTRUCTORCTOR.
+    PERFORM CONFIGURECATALOG.
+    RETURN CATALOG.
+
+LOADFILEIO.
+    PERFORM LOADCONSTRUCTORCTOR.
+    PERFORM CONFIGUREFILEIO.
+    CALL "initialize" USING FILEIO, PROPERTIES.
+    RETURN FILEIO.
+
+LOADMETRICSREPORTER.
+    IF IMPL IS NULL
+        RETURN LOGGINGMETRICSREPORTER.
+    PERFORM LOADCONSTRUCTORCTOR.
+    CALL "initialize" USING REPORTER, PROPERTIES.
+    RETURN REPORTER.
+
+CONFIGUREHAD00PCONF.
+    IF MAYBECONFIG URABLE IS NULL
+        RAISE EXCEPTION "Cannot configure: null Configurable".
+    IF CONF IS NOT NULL
+        IF MAYBECONFIG URABLE IS Configurable
+            CALL "setConf" USING MAYBECONFIG URABLE, CONF.
+        ELSE
+            PERFORM LOADDYNCLASSES.
+            PERFORM BINDDYNMETHOD.
+            CALL "setConf" USING MAYBECONFIG URABLE, CONF.
+
+DELETEREMVED METADATA FILES.
+    IF BASE IS NULL
+        RETURN.
+    PERFORM GETREMOVED PREVIOUS METADATA FILES.
+    IF DELETEAFTERCOMM IT
+        IF IO IS SupportsBulkOperations
+            CALL "deleteFiles" USING IO, REMOVED PREVIOUS METADATA FILES.
+        ELSE
+            PERFORM DELETEPREVIO USMETADATAFILES.
+
+*> HELPER METHODS
+
+LOADCONSTRUCTORCTOR.
+    PERFORM GETDYNCONSTRUCTOR USING IMPL.
+    SET CTOR TO RESULT.
+
+CONFIGURECATALOG.
+    IF MAYBECONFIGURAB LE IS Configurable
+        CALL "setConf" USING CATALOG, HADOOPCONF.
+    CALL "initialize" USING CATALOG, CATALOGNAME, PROPERTIES.
+
+CONFIGUREFILEIO.
+    IF MAYBECONFIGURAB LE IS Configurable
+        CALL "setConf" USING FILEIO, HADOOPCONF.
+
+GETREMOVED PREVIOUS METADATA FILES.
+    MOVE BASE-PREVIOUS-FI LES TO REMOVED-PREVIOUS-METADATA-FILES.
+    SUBTRACT METADATA-PREVIOUS-FI LES FROM REMOVED-PREVIOUS-METADATA-FILES.
+
+DELETEPREVIO USMETADATAFILES.
+    PERFORM VARYING PREVIOUSMETADATAFILE IN REMOVED-PREVIOUS-METADATA-FILES
+        CALL "deleteFile" USING IO, PREVIOUSMETADATAFILE-FILE.
+
+LOADDYNCLASSES.
+    PERFORM GETDYNCLASS USING "org.apache.hadoop.conf.Configurable" INTO CONFIGURABLEINTERFACE.
+    PERFORM GETDYNCLASS USING "org.apache.hadoop.conf.Configuration" INTO CONFIGURATIONCLASS.
+
+BINDDYNMETHOD.
+    PERFORM GETDYNMETHOD USING CONFIGURABLEINTERFACE, CONFIGURATIONCLASS, "setConf".
+    CALL "bind" USING MAYBECONFIG URABLE, SETCONF-METHOD.
+    CALL "invoke" USING SETCONF-METHOD, CONF.
+
+GETDYNCONSTRUCTOR USING CLASS-NAME.
+    PERFORM DYNCONSTRUCTOR-BUILD ER USING CLASS-NAME.
+    MOVE RESULT TO CTOR.
+
+GETDYNCLASS USING CLASS-NAME INTO RESULT.
+    PERFORM DYNCLASSES-BUILDER USING CLASS-NAME.
+    MOVE RESULT TO RESULT.
+
+GETDYNMETHOD USING INTERFACE, ARG, METHOD-NAME.
+    PERFORM DYNMETHODS-BUILDER USING INTERFACE, ARG, METHOD-NAME.
+    MOVE RESULT TO SETCONF-METHOD.
+
+DYNCONSTRUCTOR-BUILD ER USING CLASS-NAME.
+    CALL "impl" USING CLASS-NAME.
+    CALL "buildChecked" GIVING CTOR.
+
+DYNCLASSES-BUILDER USING CLASS-NAME.
+    CALL "loader" USING CatalogUtil class GETCLASSLOADER.
+    CALL "impl" USING CLASS-NAME.
+    CALL "buildChecked" GIVING RESULT.
+
+DYNMETHODS-BUILDER USING INTERFACE, ARG, METHOD-NAME.
+    CALL "impl" USING INTERFACE, ARG.
+    CALL "build" GIVING SETCONF-METHOD.
+    CALL "buildChecked" GIVING SETCONF-METHOD.

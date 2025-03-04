@@ -1,0 +1,85 @@
+IDENTIFICATION DIVISION.
+PROGRAM-ID. TABLE-METADATA.
+
+ENVIRONMENT DIVISION.
+SPECIAL-NAMES.
+    TIMEZONE IS ENVIRONMENT-NAME.
+
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+
+01 INITIAL-SEQUENCE-NUMBER            PIC 9(18) VALUE 0.
+01 INVALID-SEQUENCE-NUMBER            PIC 9(18) VALUE -1.
+01 DEFAULT-TABLE-FORMAT-VERSION       PIC 9(3) VALUE 2.
+01 SUPPORTED-TABLE-FORMAT-VERSION     PIC 9(3) VALUE 3.
+01 INITIAL-SPEC-ID                    PIC 9(9) VALUE 0.
+01 INITIAL-SORT-ORDER-ID              PIC 9(9) VALUE 1.
+01 INITIAL-SCHEMA-ID                  PIC 9(9) VALUE 0.
+01 INITIAL-ROW-ID                     PIC 9(18) VALUE 0.
+01 DEFAULT-ROW-LINEAGE                PIC 9(1) VALUE 0.
+01 MIN-FORMAT-VERSION-ROW-LINEAGE     PIC 9(3) VALUE 3.
+
+01 ONE-MINUTE                         PIC 9(18) VALUE 60000.
+
+01 TABLE-METADATA.
+   05 METADATA-FILE-LOCATION          PIC X(256).
+   05 FORMAT-VERSION                  PIC 9(3).
+   05 UUID                            PIC X(36).
+   05 LOCATION                        PIC X(256).
+   05 LAST-SEQUENCE-NUMBER            PIC 9(18).
+   05 LAST-UPDATED-MILLIS             PIC 9(18).
+   05 LAST-COLUMN-ID                  PIC 9(9).
+   05 CURRENT-SCHEMA-ID               PIC 9(9).
+   05 SCHEMAS                         OCCURS 999 TIMES.
+      10 SCHEMA-ID                    PIC 9(9).
+      10 SCHEMA-COLUMNS               PIC 9(9).
+      10 SCHEMA-IDENTIFIER-FIELDS     PIC 9(9) OCCURS 999 TIMES.
+   05 DEFAULT-SPEC-ID                 PIC 9(9).
+   05 SPECS                           OCCURS 999 TIMES.
+      10 SPEC-ID                      PIC 9(9).
+      10 SPEC-FIELDS                  OCCURS 999 TIMES.
+         15 FIELD-SOURCE-ID           PIC 9(9).
+         15 FIELD-ID                  PIC 9(9).
+         15 FIELD-NAME                PIC X(128).
+         15 FIELD-TRANSFORM           PIC X(128).
+   05 LAST-ASSIGNED-PARTITION-ID     PIC 9(9).
+   05 DEFAULT-SORT-ORDER-ID          PIC 9(9).
+   05 SORT-ORDERS                    OCCURS 999 TIMES.
+      10 ORDER-ID                    PIC 9(9).
+      10 ORDER-FIELDS                OCCURS 999 TIMES.
+         15 FIELD-SOURCE-ID          PIC 9(9).
+         15 FIELD-ID                 PIC 9(9).
+         15 FIELD-DIRECTION          PIC X.
+         15 FIELD-NULL-ORDER         PIC X.
+   05 PROPERTIES                     OCCURS 999 TIMES.
+      10 PROPERTY-KEY                PIC X(128).
+      10 PROPERTY-VALUE              PIC X(128).
+   05 CURRENT-SNAPSHOT-ID            PIC 9(18).
+   05 SNAPSHOTS                      OCCURS 999 TIMES.
+      10 SNAPSHOT-ID                 PIC 9(18).
+      10 SNAPSHOT-SEQUENCE-NUMBER    PIC 9(18).
+      10 SNAPSHOT-TIMESTAMP-MILLIS   PIC 9(18).
+      10 SNAPSHOT-PARENT-ID          PIC 9(18).
+      10 SNAPSHOT-MANIFEST-LIST      PIC X(1024).
+      10 SNAPSHOT-ADDED-ROWS         PIC 9(18).
+      10 SNAPSHOT-FIRST-ROW-ID       PIC 9(18).
+   05 SNAPSHOT-LOG                   OCCURS 999 TIMES.
+      10 LOG-TIMESTAMP-MILLIS        PIC 9(18).
+      10 LOG-SNAPSHOT-ID             PIC 9(18).
+   05 PREVIOUS-FILES                 OCCURS 999 TIMES.
+      10 FILE-TIMESTAMP-MILLIS       PIC 9(18).
+      10 FILE-LOCATION               PIC X(256).
+   05 STATISTICS-FILES               OCCURS 999 TIMES.
+      10 STATISTICS-SNAPSHOT-ID      PIC 9(18).
+      10 STATISTICS-FILE-LOCATION    PIC X(256).
+   05 PARTITION-STATISTICS-FILES    OCCURS 999 TIMES.
+      10 PARTITION-STATISTICS-SNAPSHOT-ID PIC 9(18).
+      10 PARTITION-STATISTICS-FILE-LOCATION PIC X(256).
+   05 CHANGES                        OCCURS 999 TIMES.
+      10 CHANGE-TYPE                 PIC X(32).
+      10 CHANGE-DATA                 PIC X(1024).
+   05 ROW-LINEAGE-ENABLED            PIC 9(1).
+   05 NEXT-ROW-ID                    PIC 9(18).
+
+PROCEDURE DIVISION.
+    STOP RUN.

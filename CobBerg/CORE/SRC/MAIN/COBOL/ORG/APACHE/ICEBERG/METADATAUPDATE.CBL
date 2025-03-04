@@ -1,0 +1,111 @@
+IDENTIFICATION DIVISION.
+PROGRAM-ID. METADATA-UPDATE.
+
+ENVIRONMENT DIVISION.
+INPUT-OUTPUT SECTION.
+FILE-CONTROL.
+
+DATA DIVISION.
+WORKING-STORAGE SECTION.
+01 WS-UUID PIC X(36).
+01 WS-FORMAT-VERSION PIC 9(10).
+01 WS-SCHEMA-ID PIC 9(10).
+01 WS-SPEC-ID PIC 9(10).
+01 WS-SPEC-IDS PIC 9(10) OCCURS 9999 TIMES.
+01 WS-SORT-ORDER-ID PIC 9(10).
+01 WS-SNAPSHOT-ID PIC 9(18).
+01 WS-REF-NAME PIC X(256).
+01 WS-REF-TYPE PIC X(10).
+01 WS-MIN-SNAPSHOTS-TO-KEEP PIC 9(10).
+01 WS-MAX-SNAPSHOT-AGE-MS PIC 9(18).
+01 WS-MAX-REF-AGE-MS PIC 9(18).
+01 WS-PROPERTIES PIC X(1024) OCCURS 9999 TIMES.
+01 WS-PROPERTY-COUNT PIC 9(10).
+01 WS-LOCATION PIC X(1024).
+01 WS-VERSION-ID PIC 9(10).
+
+PROCEDURE DIVISION.
+
+ASSIGN-UUID.
+    MOVE WS-UUID TO metadataBuilder-uuid.
+
+UPGRADE-FORMAT-VERSION.
+    MOVE WS-FORMAT-VERSION TO metadataBuilder-formatVersion.
+
+ADD-SCHEMA.
+    MOVE WS-SCHEMA-ID TO metadataBuilder-currentSchema.
+
+ADD-PARTITION-SPEC.
+    PERFORM VARYING I FROM 1 BY 1 UNTIL I > WS-PROPERTY-COUNT
+        MOVE WS-SPEC-IDS(I) TO metadataBuilder-addPartitionSpec
+    END-PERFORM.
+
+SET-DEFAULT-PARTITION-SPEC.
+    MOVE WS-SPEC-ID TO metadataBuilder-setDefaultPartitionSpec.
+
+REMOVE-PARTITION-SPECS.
+    PERFORM VARYING I FROM 1 BY 1 UNTIL I > WS-PROPERTY-COUNT
+        MOVE WS-SPEC-IDS(I) TO metadataBuilder-removeSpecs
+    END-PERFORM.
+
+ADD-SORT-ORDER.
+    MOVE WS-SORT-ORDER-ID TO metadataBuilder-addSortOrder.
+
+SET-DEFAULT-SORT-ORDER.
+    MOVE WS-SORT-ORDER-ID TO metadataBuilder-setDefaultSortOrder.
+
+SET-STATISTICS.
+    MOVE WS-SNAPSHOT-ID TO statisticsFile-snapshotId.
+    MOVE statisticsFile TO metadataBuilder-setStatistics.
+
+REMOVE-STATISTICS.
+    MOVE WS-SNAPSHOT-ID TO metadataBuilder-removeStatistics.
+
+SET-PARTITION-STATISTICS.
+    MOVE WS-SNAPSHOT-ID TO partitionStatisticsFile-snapshotId.
+    MOVE partitionStatisticsFile TO metadataBuilder-setPartitionStatistics.
+
+REMOVE-PARTITION-STATISTICS.
+    MOVE WS-SNAPSHOT-ID TO metadataBuilder-removePartitionStatistics.
+
+ADD-SNAPSHOT.
+    MOVE snapshot TO metadataBuilder-addSnapshot.
+
+REMOVE-SNAPSHOT.
+    MOVE WS-SNAPSHOT-ID TO metadataBuilder-removeSnapshots.
+
+REMOVE-SNAPSHOT-REF.
+    MOVE WS-REF-NAME TO metadataBuilder-removeRef.
+
+SET-SNAPSHOT-REF.
+    MOVE WS-REF-NAME TO snapshotRef-name.
+    MOVE WS-SNAPSHOT-ID TO snapshotRef-snapshotId.
+    MOVE WS-REF-TYPE TO snapshotRef-type.
+    MOVE WS-MIN-SNAPSHOTS-TO-KEEP TO snapshotRef-minSnapshotsToKeep.
+    MOVE WS-MAX-SNAPSHOT-AGE-MS TO snapshotRef-maxSnapshotAgeMs.
+    MOVE WS-MAX-REF-AGE-MS TO snapshotRef-maxRefAgeMs.
+    MOVE snapshotRef TO metadataBuilder-setRef.
+
+SET-PROPERTIES.
+    PERFORM VARYING I FROM 1 BY 1 UNTIL I > WS-PROPERTY-COUNT
+        MOVE WS-PROPERTIES(I) TO metadataBuilder-setProperties
+    END-PERFORM.
+
+REMOVE-PROPERTIES.
+    PERFORM VARYING I FROM 1 BY 1 UNTIL I > WS-PROPERTY-COUNT
+        MOVE WS-PROPERTIES(I) TO metadataBuilder-removeProperties
+    END-PERFORM.
+
+SET-LOCATION.
+    MOVE WS-LOCATION TO metadataBuilder-setLocation.
+
+ADD-VIEW-VERSION.
+    MOVE viewVersion TO viewMetadataBuilder-addVersion.
+
+SET-CURRENT-VIEW-VERSION.
+    MOVE WS-VERSION-ID TO viewMetadataBuilder-setCurrentVersionId.
+
+ENABLE-ROW-LINEAGE.
+    MOVE 1 TO metadataBuilder-enableRowLineage.
+
+STOP RUN.

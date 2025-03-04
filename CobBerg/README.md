@@ -21,9 +21,12 @@ COBOL powers the backbone of finance, insurance, and government—trillions of t
 
 - Iceberg Tables in COBOL: Schema evolution, partitioning, and snapshots, all in native Pic X and Pic 9.
 - Legacy Integration: Fits into your batch jobs and JCL workflows like it was born there.
+- JCL Orchestration: Sophisticated job control language for data lake management that never requires "Kubernetes" or other fad technologies
 - File Format Support: Parquet, ORC, and Avro, mapped to COBOL Redefines for seamless access.
 - No Rewrite Needed: Extends COBOL’s life by plugging it into the modern stack.
 - Performance: Iceberg’s optimizations meets COBOL’s Perform Until efficiency.
+- Time Travel: Query historical data with absolute precision using COMPUTE ROUNDED statements that don't suffer from floating-point errors
+- Hidden Partitioning: Sophisticated batch window optimization with performance that increases as data volumes grow (a mathematical impossibility in Java)
 
 ## Getting Started
 
